@@ -1,10 +1,10 @@
 [
 	{
 		"_id": "1",
-		"name": "Abhijeet",
+		"name": "John Doe",
 		"phone": "123-456-7890",
 		"address": {
-			"street": "55 Leroy street",
+			"street": "123 Main street",
 			"city": "Binghamton",
 			"state": "NY",
 			"zip": "13905"
@@ -12,21 +12,10 @@
 	},
 	{
 		"_id": "2",
-		"name": "Akshay",
+		"name": "Jane Doe",
 		"phone": "123-456-7891",
 		"address": {
-			"street": "55 Leroy street",
-			"city": "Binghamton",
-			"state": "NY",
-			"zip": "13905"
-		}
-	},
-	{
-		"_id": "3",
-		"name": "Adita",
-		"phone": "123-456-7892",
-		"address": {
-			"street": "55 Leroy street",
+			"street": "123 Main street",
 			"city": "Binghamton",
 			"state": "NY",
 			"zip": "13905"
