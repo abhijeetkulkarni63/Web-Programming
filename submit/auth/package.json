@@ -1,0 +1,19 @@
+{
+  "name": "project3",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "author": "Abhijeet Kulkarni",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.18.2",
+    "express": "^4.16.2",
+    "jsonwebtoken": "^8.1.0",
+    "mocha": "^4.0.1",
+    "mongodb": "^2.2.33",
+    "sha256": "^0.2.0"
+  }
+}
