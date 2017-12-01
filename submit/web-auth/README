@@ -1,0 +1,13 @@
+Name:	   Abhijeet Kulkarni
+B-Number:  B00659279
+Email:     akulka16@binghamton.edu
+
+Notes for grader:
+	Server folder contains code to interact with mongoDB. Use following command to run.
+	./index.js [ -d|--ssl-dir SSL_DIR ] PORT WS_URL
+
+	Web Service folder contains code that get data from server and stores in MongoDB. Use following command to run.
+	./index.js [ -t|--auth-time AUTH_TIME ] [ -d|--ssl-dir SSL_DIR ] PORT
+
+  	+ Status: Complete.
+  	+ 1 Day late
