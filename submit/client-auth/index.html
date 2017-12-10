@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>User Authenticator</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://unpkg.com/react@16/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@16/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/babel-standalone@6.15.0/babel.min.js"></script>
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+  (function() {
+
+    const WS_URL = 'https://localhost:1236';
+    const AUTH_KEY = 'authToken';
+    const EMAIL_KEY = 'email';
+
+    function AuthService() {
+      
+      function getWsUrl() {
+        const params = (new URL(document.location)).searchParams;
+        console.log(params);
+        return params.get('ws-url') || WS_URL;
+      }
+
+      this.baseURL = getWsUrl();
+
+      this.login = function(email, pwd) {
+        return axios.put(`${this.baseURL}/users/${email}/auth`, {
+          pw: pwd
+        })
+        .then((response) => response.data);
+      }
+
+      this.register = function(email, pwd, firstname, lastname) {
+        return axios.put(`${this.baseURL}/users/${email}?pw=${pwd}`, {
+          'firstname': `${firstname}`,
+          'lastname': `${lastname}`
+        })
+        .then((response) => response.data);
+      }
+
+      this.getUser = function(email, authToken) {
+      	return axios.get(`${this.baseURL}/users/${email}`, {
+      	  headers: {
+          	'authorization': `Bearer ${authToken}`
+          }
+      	})
+      	.then((response) => response.data);
+  	  }
+    }
+
+    class Account extends React.Component {
+      constructor(props) {
+        super(props);
+        this.app = props.app;
+        this.state = {
+          firstname: this.app.response.firstname,
+          lastname: this.app.response.lastname
+    	}
+    	this.clickHandler = this.clickHandler.bind(this);
+      }
+
+      clickHandler(event) {
+      	localStorage.setItem(AUTH_KEY, 0);
+      	const component = <Login app={this.app}/>;
+      	this.app.setActive(component);
+        event.preventDefault();
+  	  }
+
+      render() {
+      	const {firstname, lastname} = this.state;
+      	const {clickHandler} = this;
+        return(
+          <div>
+          	<h1>Account</h1>
+          	<table>
+          		<tbody>
+          			<tr>
+          				<td>First Name:</td>
+          				<td>{firstname}</td>
+          			</tr>
+          			<tr>
+          				<td>Last Name:</td>
+          				<td>{lastname}</td>
+          			</tr>
+          			<tr>
+                  	<td colSpan="2">
+                  		<a href="#" onClick={clickHandler} id="Logout">Log Out</a>
+                  	</td>
+                  </tr>
+          		</tbody>
+          	</table>
+          </div>
+        );
+      }
+    }
+
+    class Registration extends React.Component {
+      constructor(props) {
+        super(props);
+        this.app = props.app;
+        this.state = {
+          firstname: '',
+          lastname: '',
+          email: '',
+          pwd: '',
+          cpwd: '',
+          qError: '',
+          genError: '',
+        };
+        this.firstnameHandler = this.firstnameHandler.bind(this);
+        this.lastnameHandler = this.lastnameHandler.bind(this);
+        this.emailHandler = this.emailHandler.bind(this);
+        this.pwdHandler = this.pwdHandler.bind(this);
+        this.cpwdHandler = this.cpwdHandler.bind(this);
+        this.submitHandler = this.submitHandler.bind(this);
+        this.clickHandler = this.clickHandler.bind(this);
+      }
+
+      isFieldBlank(field, label) {
+        const err = (field.trim().length === 0) ? label + ' cannot be empty' : '';
+        this.setState({qError: err});
+        return err.length === 0;
+      }
+
+      validateEmail(email) {
+        if((/^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/).test(email)) {
+          this.setState({qError: ''});
+          return true;
+        } else {
+          this.setState({qError: 'Invalid Email Address'});
+          return false;
+        }
+      }
+
+      validatePwd(pwd) {
+        if(pwd.length >= 8) {
+          if((/\w+/).test(pwd) === true) {
+            if((/\d+/).test(pwd) === true) {
+              if((/\s+/).test(pwd) === false) {
+                this.setState({qError: ''});
+                return true;
+              }
+            }
+          }
+        } else {
+          this.setState({qError: 'Invalid Password'});
+          return false;
+        }
+      }
+
+      matchPwds(cpwd) {
+        const pwd = this.state.pwd;
+        if(pwd === cpwd) {
+          this.setState({qError: ''});
+          return true;
+        } else {
+          this.setState({qError: 'Passwords do not match'});
+          return false;
+        }
+      }
+
+      firstnameHandler(event) {
+        const firstname = event.target.value;
+        this.isFieldBlank(firstname, 'First Name');
+        this.setState({firstname: firstname, genError: ''});
+      }
+
+      lastnameHandler(event) {
+        const lastname = event.target.value;
+        this.isFieldBlank(lastname, 'Last Name');
+        this.setState({lastname: lastname, genError: ''});
+      }
+
+      emailHandler(event) {
+        const email = event.target.value;
+        if(this.isFieldBlank(email, 'Email')) {
+          this.validateEmail(email);
+        }
+        this.setState({email: email, genError: ''});
+      }
+
+      pwdHandler(event) {
+        const pwd = event.target.value;
+        if(this.isFieldBlank(pwd, 'Password')) {
+          this.validatePwd(pwd);
+        }
+        this.setState({pwd: pwd, genError: ''});
+      }
+
+      cpwdHandler(event) {
+        const cpwd = event.target.value;
+        if(this.isFieldBlank(cpwd, 'Password')) {
+          this.matchPwds(cpwd);
+        }
+        this.setState({cpwd: cpwd, genError: ''});
+      }
+
+      clickHandler(event) {
+      	const component = <Login app={this.app}/>;
+      	this.app.setActive(component);
+        event.preventDefault();
+  	  }
+
+      submitHandler(event) {
+      	const firstname = this.state.firstname;
+        const lastname = this.state.lastname;
+        const email = this.state.email;
+        const pwd = this.state.pwd;
+        const cpwd = this.state.cpwd;
+        const self = this;
+        if(this.validateEmail(email)) {
+          if(this.isFieldBlank(pwd, 'Password')) {
+            if(this.isFieldBlank(firstname, 'First Name')) {
+              if(this.isFieldBlank(lastname, 'Last Name')) {
+                if(this.matchPwds(cpwd)) {
+                  this.app.ws.register(email, pwd, firstname, lastname).
+                  then(function(response) {
+                    localStorage.setItem(AUTH_KEY, response.authToken);
+                    localStorage.setItem(EMAIL_KEY, email);
+                    sessionStorage.setItem(EMAIL_KEY, email);
+                    self.app.ws.getUser(email, response.authToken)
+                    .then(function(response) {
+                      self.app.response = response;
+                      self.app.setActive(<Account app={self.app}/>);
+                	}).
+                	catch(function(err) {
+                	  self.app.setActive(<Registration app={self.app}/>);
+                	})
+                  }).
+                  catch(function(err) {
+                    self.setState({genError: 'User Already Exists'});
+                  	self.app.setActive(<Registration app={self.app}/>);
+              	  });
+                }
+              }
+            }
+          }
+        }
+        event.preventDefault();
+      }
+
+      render() {
+        const {firstname, lastname, email, pwd, cpwd, qError, genError} = this.state;
+        const {firstnameHandler, lastnameHandler, emailHandler, pwdHandler, cpwdHandler, submitHandler, clickHandler} = this;
+        return (
+          <div>
+            <h1>Registration</h1>
+            <p className="error">{genError}</p>
+            <form onSubmit={submitHandler}>
+              <table>
+                <tbody>
+                  <tr>
+                    <td colSpan="2"><span className="error">{qError}<br/></span></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <label><span className="label">First Name: </span></label>
+                    </td>
+                    <td>
+                      <input name="firstname" className="control" value={firstname} onBlur={firstnameHandler} onChange={firstnameHandler} />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <label><span className="label">Last Name: </span></label>
+                    </td>
+                    <td>
+                      <input name="lastname" className="control" value={lastname} onBlur={lastnameHandler} onChange={lastnameHandler} />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <label><span className="label">Email: </span></label>
+                    </td>
+                    <td>
+                      <input name="email" className="control" value={email} onBlur={emailHandler} onChange={emailHandler} />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <label>
+                        <span className="label">Password: </span>
+                      </label>
+                    </td>
+                    <td>
+                      <input type="password" name="pwd" className="control" value={pwd} onBlur={pwdHandler} onChange={pwdHandler} />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <label>
+                        <span className="label">Confirm Password: </span>
+                      </label>
+                    </td>
+                    <td>
+                      <input type="password" name="cpwd" className="control" value={cpwd} onBlur={cpwdHandler} onChange={cpwdHandler} />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td colSpan="2">
+                      <input name="submit" type="submit" value="Register" className="control"/>
+                    </td>
+                  </tr>
+                  <tr>
+                  	<td colSpan="2">
+                  		<a href="#" onClick={clickHandler} id="Login">Login</a>
+                  	</td>
+                  </tr>
+                </tbody>
+              </table>
+            </form>
+          </div>
+        );
+      }
+    }
+
+    class Login extends React.Component {
+      constructor(props) {
+        super(props);
+        this.app = props.app;
+        this.state = {
+          email: '',
+          pwd: '',
+          qError: '',
+          genError: '',
+        };
+        this.emailHandler = this.emailHandler.bind(this);
+        this.pwdHandler = this.pwdHandler.bind(this);
+        this.submitHandler = this.submitHandler.bind(this);
+        this.clickHandler = this.clickHandler.bind(this);
+      }
+
+      isFieldBlank(field, label) {
+        const err = (field.trim().length === 0) ? label + ' cannot be empty' : '';
+        this.setState({qError: err});
+        return err.length === 0;
+      }
+
+      validateEmail(email) {
+        if((/^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/).test(email)) {
+          this.setState({qError: ''});
+          return true;
+        } else {
+          this.setState({qError: 'Invalid Email Address'});
+          return false;
+        }
+      }
+
+      emailHandler(event) {
+        const email = event.target.value;
+        if(this.isFieldBlank(email, 'Email')) {
+          this.validateEmail(email);
+        }
+        this.setState({email: email, genError: ''});
+      }
+
+      pwdHandler(event) {
+        const pwd = event.target.value;
+        this.isFieldBlank(pwd, 'Password');
+        this.setState({pwd: pwd, genError: ''});
+      }
+
+      clickHandler(event) {
+      	const component = <Registration app={this.app}/>;
+      	this.app.setActive(component);
+        event.preventDefault();
+  	  }
+
+      submitHandler(event) {
+        const email = this.state.email;
+        const pwd = this.state.pwd;
+        const self = this;
+        if(this.validateEmail(email)) {
+          if(this.isFieldBlank(pwd, 'Password')) {
+            this.app.ws.login(email, pwd).
+            then(function(response) {
+              localStorage.setItem(AUTH_KEY, response.authToken);
+              localStorage.setItem(EMAIL_KEY, email);
+              self.app.ws.getUser(email, response.authToken)
+              .then(function(response) {
+                self.app.response = response;
+                self.app.setActive(<Account app={self.app}/>);
+              }).
+              catch(function(err) {
+                self.app.setActive(<Login app={self.app}/>);
+              })
+            }).
+            catch(function(err) {
+              self.setState({genError: 'Username Password do not match'});
+              self.app.setActive(<Login app={self.app}/>);
+        	});
+		  }     
+        }
+        event.preventDefault();
+      }
+
+      render() {
+        const {email, pwd, q, qError, genError} = this.state;
+        const {emailHandler, pwdHandler, submitHandler, clickHandler} = this;
+        return (
+          <div>
+            <h1>Login</h1>
+            <p className="error">{genError}</p>
+            <form onSubmit={submitHandler}>
+              <table>
+                <tbody>
+                  <tr>
+                    <td colSpan="2"><span className="error">{qError}<br/></span></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <label><span className="label">Email: </span></label>
+                    </td>
+                    <td>
+                      <input name="email" className="control" value={email} onBlur={emailHandler} onChange={emailHandler} />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <label>
+                        <span className="label">Password: </span>
+                      </label>
+                    </td>
+                    <td>
+                      <input type="password" name="pwd" className="control" value={pwd} onBlur={pwdHandler} onChange={pwdHandler} />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td colSpan="2">
+                      <input name="login" type="submit" value="Login" className="control"/>
+                    </td>
+                  </tr>
+                  <tr>
+                  	<td colSpan="2">
+                  		<a href="#" onClick={clickHandler} id="Register">Register</a>
+                  	</td>
+                  </tr>
+                </tbody>
+              </table>
+            </form>
+          </div>
+        );
+      }
+    }
+
+    class App extends React.Component {
+      constructor(props) {
+        super(props);
+        this.ws = props.ws;
+      	this.state = { active: <Login app={this}/> }
+      	const self = this;
+      	if(localStorage.getItem(AUTH_KEY) === 0) {
+      	  this.setState({active: <Login app={this}/>});
+      	} else {
+      	  self.ws.getUser(localStorage.getItem(EMAIL_KEY), localStorage.getItem(AUTH_KEY))
+          .then(function(response) {
+          	self.response = response;
+            self.setState({active: <Account app={self}/>});
+          }).
+          catch(function(err) {
+            self.setState({active: <Login app={self}/>});
+          })
+      	}
+      }
+
+      setActive(component) {
+   		this.setState({active: component});
+  	  }
+
+      render() {
+        return (
+          <div>
+            {this.state.active}
+          </div>
+        );
+      }
+    }
+
+    const ws = new AuthService();
+    ReactDOM.render(
+      <App ws={ws}/>,
+      document.getElementById('root')
+    );
+
+  })();  //end IIFE
+  </script>
+</body>
+</html>
